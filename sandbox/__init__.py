@@ -1,0 +1,1 @@
+"""Synthetic testing sandbox components."""

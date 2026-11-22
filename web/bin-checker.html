@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIN / IIN Issuer Lookup</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#121d30;--line:#263650;--muted:#9fb0c8;--text:#edf4ff;--accent:#55c7ee;--good:#79d6ae;--warn:#ffd27a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#162844,var(--bg) 65%);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh;padding:32px 16px}
+main{max-width:850px;margin:auto}.eyebrow{color:var(--accent);font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+h1{font-size:clamp(2rem,5vw,3.3rem);line-height:1.05;margin:.55rem 0}.intro{color:var(--muted);max-width:680px}
+.panel{background:rgba(18,29,48,.94);border:1px solid var(--line);border-radius:18px;padding:24px;margin-top:24px;box-shadow:0 18px 55px #0005}
+label{display:block;font-weight:650;margin-bottom:8px}form{display:flex;gap:10px;flex-wrap:wrap}
+input{flex:1;min-width:210px;background:#0b1424;color:var(--text);border:1px solid #38506f;border-radius:10px;padding:14px;font:inherit;letter-spacing:.12em}
+button{background:var(--accent);color:#06121d;border:0;border-radius:10px;padding:14px 20px;font:inherit;font-weight:750;cursor:pointer}button:disabled{opacity:.55;cursor:wait}
+.hint,.status,.disclaimer{color:var(--muted);font-size:.9rem}.status{min-height:1.5em;margin:14px 0 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:20px}
+.item{background:#0b1424;border:1px solid var(--line);border-radius:12px;padding:14px;min-height:86px}
+.item small{display:block;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:.7rem;font-weight:700;margin-bottom:7px}
+.item strong{font-size:1rem;overflow-wrap:anywhere}
+.result-title{margin:22px 0 0;font-size:1.1rem}.disclaimer{border-left:3px solid var(--warn);padding-left:12px;margin-top:20px}
+footer{color:var(--muted);font-size:.82rem;margin:22px 4px}
+@media(max-width:520px){body{padding:22px 12px}.panel{padding:18px}button{width:100%}}
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Issuer metadata • informational lookup</div>
+  <h1>BIN / IIN Checker</h1>
+  <p class="intro">Look up public issuer-range information using the first 6–8 digits of a payment card. This tool returns issuer metadata only; it does not validate a card or test a payment.</p>
+  <section class="panel" aria-labelledby="lookup-heading">
+    <h2 id="lookup-heading">Lookup BIN / IIN</h2>
+    <form id="lookup-form">
+      <div style="flex:1;min-width:210px">
+        <label for="bin">First 6–8 digits only</label>
+        <input id="bin" name="bin" inputmode="numeric" autocomplete="off" maxlength="8" minlength="6" placeholder="e.g. 457173" required pattern="[0-9]{6,8}" aria-describedby="bin-hint">
+        <div class="hint" id="bin-hint">Do not enter a full card number, expiration date, CVV, or personal information.</div>
+      </div>
+      <button id="submit" type="submit">Lookup issuer</button>
+    </form>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+    <div id="results" hidden>
+      <h3 class="result-title">Issuer range details</h3>
+      <div class="grid">
+        <div class="item"><small>Network / scheme</small><strong id="scheme">—</strong></div>
+        <div class="item"><small>Card type</small><strong id="type">—</strong></div>
+        <div class="item"><small>Brand</small><strong id="brand">—</strong></div>
+        <div class="item"><small>Issuer / bank</small><strong id="bank">—</strong></div>
+        <div class="item"><small>Country</small><strong id="country">—</strong></div>
+        <div class="item"><small>Prepaid range</small><strong id="prepaid">—</strong></div>
+        <div class="item"><small>Typical number length</small><strong id="length">—</strong></div>
+        <div class="item"><small>Issuer metadata Luhn flag</small><strong id="luhn">—</strong></div>
+        <div class="item"><small>3-D Secure status</small><strong>Not tested / not provided</strong></div>
+      </div>
+      <p class="hint" id="source-note">Results are supplied by a public BIN/IIN metadata service and may be incomplete or outdated.</p>
+    </div>
+    <p class="disclaimer">Important: BIN/IIN data cannot establish whether an individual card is active, funded, enrolled in 3-D Secure, exempt from a challenge, or capable of completing a transaction. No payment, authorization, or authentication request is made.</p>
+  </section>
+  <footer>Privacy by design: input is limited in the browser to 6–8 digits and is not saved by this page. The 6–8 digit prefix is sent to the public metadata provider. When hosted with the included Python server, the server proxies and caches the metadata request.</footer>
+</main>
+<script>
+const form=document.getElementById('lookup-form');
+const input=document.getElementById('bin');
+const button=document.getElementById('submit');
+const statusEl=document.getElementById('status');
+const results=document.getElementById('results');
+const put=(id,value)=>document.getElementById(id).textContent=(value===undefined||value===null||value===''?'Not reported':String(value));
+form.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const prefix=input.value.trim();
+  if(!/^\d{6,8}$/.test(prefix)){statusEl.textContent='Enter exactly 6–8 digits.';results.hidden=true;return;}
+  button.disabled=true;statusEl.textContent='Looking up public issuer metadata…';results.hidden=true;
+  try{
+    let response=await fetch('/api/bin/'+encodeURIComponent(prefix),{headers:{Accept:'application/json'}});
+    let data;
+    if(response.headers.get('content-type')?.includes('application/json')){
+      data=await response.json();
+      if(response.status===404)throw new Error(data.error||'No issuer-range record was found for that prefix.');
+      if(!response.ok)throw new Error(data.error||'Metadata lookup failed. Try again later.');
+    }else{
+      response=await fetch('https://lookup.binlist.net/'+encodeURIComponent(prefix),{headers:{Accept:'application/json'}});
+      if(response.status===404)throw new Error('No issuer-range record was found for that prefix.');
+      if(!response.ok)throw new Error('The metadata service returned HTTP '+response.status+'. Try again later.');
+      data=await response.json();
+    }
+    put('scheme',data.scheme?data.scheme.toUpperCase():null);
+    put('type',data.type);
+    put('brand',data.brand);
+    put('bank',data.bank?.name);
+    const country=data.country?([data.country.name,data.country.alpha2].filter(Boolean).join(' · ')):null;
+    put('country',country);
+    put('prepaid',typeof data.prepaid==='boolean'?(data.prepaid?'Yes':'No'):'Not reported');
+    put('length',data.number?.length);
+    put('luhn',typeof data.number?.luhn==='boolean'?(data.number.luhn?'Yes':'No'):'Not reported');
+    results.hidden=false;statusEl.textContent='Issuer metadata retrieved. This is not a card or authentication check.';
+  }catch(error){statusEl.textContent=error.message||'Lookup failed. Please retry.';}
+  finally{button.disabled=false;}
+});
+input.addEventListener('input',()=>{input.value=input.value.replace(/\D/g,'').slice(0,8);});
+</script>
+</body>
+</html>
