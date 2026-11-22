@@ -66,9 +66,17 @@ Maximum upload size is 32 KB and each file may contain at most 10 unique prefixe
 
 Tests use synthetic prefixes and local formatting/parsing only; they do not contact Telegram, binlist.net, payment processors, or authentication systems.
 
+Recommended local verification (creates `.venv`, installs dependencies, compiles the source, and runs the unit suite):
+
 ```bash
+bash scripts/verify.sh
+```
+
+To run the checks manually in an already configured environment:
+
+```bash
+python -m compileall -q main.py sandbox tests
 python -m unittest discover -s tests -v
-python -m compileall -q main.py tests
 ```
 
 ## Configuration
