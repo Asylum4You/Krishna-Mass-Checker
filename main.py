@@ -16,7 +16,7 @@ from typing import Any
 
 import httpx
 from telegram import Update
-from telegram.ext import (
+from sandbox.file_processor import parse_simulation_csv\nfrom sandbox.reporting_engine import build_simulation_report\nfrom sandbox.three_ds_simulator import simulate_3ds\nfrom telegram.ext import (
     Application,
     CommandHandler,
     ContextTypes,
@@ -202,6 +202,22 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         if len(raw) > MAX_UPLOAD_BYTES:
             raise ValueError(f"File too large. Maximum size is {MAX_UPLOAD_BYTES // 1024} KB.")
         decoded = bytes(raw).decode("utf-8-sig")
+        if filename in {"simulation.csv", "mock-simulation.csv"}:
+            cases = parse_simulation_csv(decoded)
+            results = [
+                {"test_id": case["test_id"], **simulate_3ds(case["scenario"])}
+                for case in cases
+            ]
+            report_file = io.BytesIO(build_simulation_report(results))
+            report_file.name = "synthetic_3ds_simulation_report.csv"
+            await update.message.reply_text(
+                f"Simulated {len(results)} synthetic test cases. No payment systems or card data were used."
+            )
+            await update.message.reply_document(
+                document=report_file,
+                caption="SYNTHETIC SIMULATION ONLY — not real card/authentication results."
+            )
+            return
         prefixes, duplicate_count = parse_prefix_file(decoded)
     except (UnicodeDecodeError, ValueError) as exc:
         await update.message.reply_text(f"File rejected: {exc}")
@@ -272,7 +288,7 @@ def main() -> None:
 
     application = Application.builder().token(token).build()
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("help", help_command))\n    application.add_handler(CommandHandler("simulate", simulate_command))
     application.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     logger.info("Starting BIN/IIN Metadata Lookup bot")
