@@ -1,12 +1,20 @@
 """Small HTTP server for the public BIN/IIN metadata checker."""
 from __future__ import annotations
-import json, os, re, threading, time
+
+import json
+import os
+import re
+import threading
+import time
 from collections import defaultdict, deque
+from datetime import datetime, timezone
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
+
+from sandbox.bin_classifier import classify_bin_metadata
 
 ROOT = Path(__file__).resolve().parent / "web"
 BINLIST_URL = "https://lookup.binlist.net/"
@@ -18,10 +26,12 @@ _cache = {}
 _rate = defaultdict(deque)
 _lock = threading.Lock()
 
+
 def validate_prefix(value):
     if not PREFIX_RE.fullmatch(value):
         raise ValueError("Only a 6–8 digit BIN/IIN prefix is accepted.")
     return value
+
 
 def normalize_metadata(data):
     if not isinstance(data, dict):
@@ -29,6 +39,8 @@ def normalize_metadata(data):
     country = data.get("country") if isinstance(data.get("country"), dict) else {}
     bank = data.get("bank") if isinstance(data.get("bank"), dict) else {}
     number = data.get("number") if isinstance(data.get("number"), dict) else {}
+    retrieved = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    classification = classify_bin_metadata(data, source="binlist.net", retrieved_at=retrieved)
     return {
         "scheme": data.get("scheme"), "type": data.get("type"), "brand": data.get("brand"),
         "bank": {"name": bank.get("name")},
@@ -36,7 +48,9 @@ def normalize_metadata(data):
         "prepaid": data.get("prepaid"),
         "number": {"length": number.get("length"), "luhn": number.get("luhn")},
         "authentication_status": "Not tested",
+        "classification": classification,
     }
+
 
 def _allow_request(client_ip, now=None):
     now = time.monotonic() if now is None else now
@@ -48,6 +62,7 @@ def _allow_request(client_ip, now=None):
             return False
         requests.append(now)
         return True
+
 
 def fetch_metadata(prefix):
     prefix = validate_prefix(prefix)
@@ -73,11 +88,14 @@ def fetch_metadata(prefix):
     except (URLError, TimeoutError, OSError, ValueError, UnicodeDecodeError):
         return 502, {"error": "Metadata provider is temporarily unavailable."}
 
+
 class CheckerHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT), **kwargs)
+
     def log_message(self, format, *args):
         return
+
     def _json(self, status, payload):
         body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
         self.send_response(status)
@@ -87,6 +105,7 @@ class CheckerHandler(SimpleHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(body)
+
     def do_GET(self):
         path = urlsplit(self.path).path
         if path.startswith("/api/bin/"):
@@ -109,6 +128,7 @@ class CheckerHandler(SimpleHTTPRequestHandler):
             return
         super().do_GET()
 
+
 def main():
     host = os.getenv("WEB_HOST", "127.0.0.1")
     port = int(os.getenv("WEB_PORT", "8080"))
@@ -121,6 +141,7 @@ def main():
         pass
     finally:
         server.server_close()
+
 
 if __name__ == "__main__":
     main()
