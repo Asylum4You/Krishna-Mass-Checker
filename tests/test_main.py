@@ -1,6 +1,12 @@
 import unittest
 
 from main import build_batch_report, format_bin_info, parse_prefix_file, validate_bin_prefix
+from sandbox.bin_classifier import classify_bin_metadata
+from sandbox.file_processor import parse_simulation_csv
+from sandbox.reporting_engine import build_simulation_report
+from sandbox.three_ds_simulator import simulate_3ds
+from sandbox.validation_engine import validate_simulation_record
+
 
 
 class ValidateBinPrefixTests(unittest.TestCase):
