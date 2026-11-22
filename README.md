@@ -79,3 +79,32 @@ python -m compileall -q main.py tests
 ## License
 
 No license was present in the original repository. Add an appropriate license before redistributing this project.
+
+
+## Modular synthetic testing sandbox
+
+The project also includes separate sandbox components:
+
+- File processor: accepts a bounded CSV of synthetic test cases.
+- BIN classifier: formats public issuer/network metadata only; authentication status remains Not tested.
+- Validation engine: accepts only an opaque test_id and an allowlisted scenario.
+- 3-D Secure simulator: returns deterministic mock outcomes without contacting card networks, issuers, payment processors, or authentication services.
+- Reporting engine: produces a CSV labeled as simulation-only.
+- Telegram interface: supports the /simulate command and the dedicated simulation.csv or mock-simulation.csv upload names.
+
+### Synthetic simulation scenarios
+
+- frictionless_success
+- challenge_required
+- challenge_failed
+- not_enrolled
+- unavailable
+
+Run one scenario in Telegram with /simulate followed by a scenario name. For a batch, upload a file named simulation.csv with exactly these columns:
+
+    test_id,scenario
+    case_001,frictionless_success
+    case_002,challenge_required
+    case_003,unavailable
+
+Simulation test IDs are opaque labels, not payment credentials. The validator rejects extra columns and unknown scenarios. Batch files are limited to 16 KB and 50 rows. Every generated result is explicitly marked SIMULATION ONLY and must not be interpreted as a real card, issuer, enrollment, or authentication result.
