@@ -50,9 +50,17 @@ footer{color:var(--muted);font-size:.82rem;margin:22px 4px}
         <div class="item"><small>Prepaid range</small><strong id="prepaid">—</strong></div>
         <div class="item"><small>Typical number length</small><strong id="length">—</strong></div>
         <div class="item"><small>Issuer metadata Luhn flag</small><strong id="luhn">—</strong></div>
-        <div class="item"><small>3-D Secure status</small><strong>Not tested / not provided</strong></div>
+        <div class="item"><small>Network classification</small><strong id="class-network">—</strong></div>
+        <div class="item"><small>Funding classification</small><strong id="class-funding">—</strong></div>
+        <div class="item"><small>Product category</small><strong id="class-product">—</strong></div>
+        <div class="item"><small>Metadata confidence</small><strong id="class-confidence">—</strong></div>
+        <div class="item"><small>Security posture</small><strong id="class-posture">—</strong></div>
+        <div class="item"><small>Quality flags</small><strong id="class-flags">—</strong></div>
+        <div class="item"><small>Metadata source</small><strong id="class-source">—</strong></div>
+        <div class="item"><small>Retrieved at</small><strong id="class-time">—</strong></div>
+        <div class="item"><small>3-D Secure status</small><strong>Not tested / unknown</strong></div>
       </div>
-      <p class="hint" id="source-note">Results are supplied by a public BIN/IIN metadata service and may be incomplete or outdated.</p>
+      <p class="hint" id="source-note">Classification describes provider-reported metadata quality only. It does not predict card validity, funds, 3-D Secure enrollment, authentication, or payment success. Results may be incomplete or outdated.</p>
     </div>
     <p class="disclaimer">Important: BIN/IIN data cannot establish whether an individual card is active, funded, enrolled in 3-D Secure, exempt from a challenge, or capable of completing a transaction. No payment, authorization, or authentication request is made.</p>
   </section>
@@ -92,6 +100,15 @@ form.addEventListener('submit',async event=>{
     put('prepaid',typeof data.prepaid==='boolean'?(data.prepaid?'Yes':'No'):'Not reported');
     put('length',data.number?.length);
     put('luhn',typeof data.number?.luhn==='boolean'?(data.number.luhn?'Yes':'No'):'Not reported');
+    const c=data.classification||{};
+    put('class-network',c.network);
+    put('class-funding',c.funding_type);
+    put('class-product',c.product_category);
+    put('class-confidence',c.metadata_confidence);
+    put('class-posture',c.security_posture);
+    put('class-flags',c.quality_flags);
+    put('class-source',c.metadata_source);
+    put('class-time',c.retrieved_at);
     results.hidden=false;statusEl.textContent='Issuer metadata retrieved. This is not a card or authentication check.';
   }catch(error){statusEl.textContent=error.message||'Lookup failed. Please retry.';}
   finally{button.disabled=false;}
