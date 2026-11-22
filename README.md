@@ -116,3 +116,16 @@ Run one scenario in Telegram with /simulate followed by a scenario name. For a b
     case_003,unavailable
 
 Simulation test IDs are opaque labels, not payment credentials. The validator rejects extra columns and unknown scenarios. Batch files are limited to 16 KB and 50 rows. Every generated result is explicitly marked SIMULATION ONLY and must not be interpreted as a real card, issuer, enrollment, or authentication result.
+
+
+## Safe QA configuration modules
+
+The additional QA helpers are intentionally limited to ordinary application testing:
+
+- `sandbox/network_config.py`: validates a single explicitly allowlisted HTTPS proxy endpoint for an approved connectivity test. It does not connect, rotate endpoints, select a geographic exit, or support SOCKS/RDP.
+- `sandbox/browser_qa.py`: provides bounded viewport, color-scheme, and reduced-motion settings for UI compatibility. It does not spoof timezone, geolocation, WebGL, canvas, fonts, or fraud/identity signals.
+- `sandbox/session_isolation.py`: creates unique in-memory synthetic session IDs; it does not create persistent browser profiles.
+- `sandbox/audit_log.py`: builds compact UTC audit events from opaque test labels, environment, and outcome.
+- `sandbox/policy_guard.py`: rejects payment-card fields and PAN-like digit sequences, and supplies the mandatory simulation-only label. Synthetic record validation uses this guard.
+
+These helpers do not inspect real cards, payment pages, issuer responses, or authentication outcomes. The network helper validates configuration only; it does not perform a connectivity request. All results remain **SIMULATION ONLY**.
