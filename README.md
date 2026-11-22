@@ -45,6 +45,10 @@ python main.py
 
 Never commit a real bot token. The application reads it from the process environment and exits if it is missing.
 
+## Web checker
+
+A static web interface is provided in `web/` and published to GitHub Pages by `.github/workflows/deploy-bin-checker.yml`. After Pages is enabled for the repository and the deployment workflow completes, open `https://asylum4you.github.io/Krishna-Mass-Checker/`. In Telegram, use `/web` or the button shown by `/start`. The page accepts only 6–8 digit prefixes and displays public issuer metadata; 3-D Secure status is always shown as not tested.
+
 ## Use
 
 1. Open the bot in Telegram and send `/start`.
