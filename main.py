@@ -16,6 +16,7 @@ from typing import Any
 
 import httpx
 from telegram import Update
+from sandbox.bin_classifier import classify_bin_metadata
 from sandbox.file_processor import parse_simulation_csv
 from sandbox.reporting_engine import build_simulation_report
 from sandbox.three_ds_simulator import simulate_3ds
@@ -271,16 +272,8 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             if data is None:
                 row["Lookup result"] = "No public metadata found"
             else:
-                country = data.get("country") or {}
-                bank = data.get("bank") or {}
-                row.update({
-                    "Scheme": str(data.get("scheme") or ""),
-                    "Brand": str(data.get("brand") or ""),
-                    "Card type": str(data.get("type") or ""),
-                    "Country": str(country.get("name") or ""),
-                    "Bank / issuer": str(bank.get("name") or ""),
-                    "Lookup result": "Found",
-                })
+                row.update(classify_bin_metadata(data))
+                row["Lookup result"] = "Found"
         except httpx.HTTPStatusError as exc:
             row["Lookup result"] = f"HTTP {exc.response.status_code}"
         except (httpx.HTTPError, ValueError):
