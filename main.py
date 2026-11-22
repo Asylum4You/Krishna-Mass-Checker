@@ -128,7 +128,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             "one prefix per row (up to 10 unique prefixes).\n"
             "Do not send full card numbers, CVVs, expiry dates, or payment data.\n\n"
             "This bot reports public issuer metadata only. It does not check card "
-            "validity, 3-D Secure/VBV enrollment, authentication, or transaction status."
+            "validity, 3-D Secure/VBV enrollment, authentication, or transaction status.\\n\\n"
+            "For mock testing only, use /simulate <scenario> or upload simulation.csv "
+            "with test_id,scenario columns. Outcomes are synthetic and are not real card results."
         )
 
 
