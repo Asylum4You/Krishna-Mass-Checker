@@ -117,15 +117,15 @@ class SyntheticSimulationTests(unittest.TestCase):
 
     def test_parses_synthetic_batch_and_rejects_duplicate_ids(self):
         parsed = parse_simulation_csv(
-            "test_id,scenario\\ncase_1,frictionless_success\\ncase_2,challenge_failed\\n"
+            "test_id,scenario\ncase_1,frictionless_success\ncase_2,challenge_failed\n"
         )
         self.assertEqual(len(parsed), 2)
         with self.assertRaises(ValueError):
-            parse_simulation_csv("test_id,scenario\\ncase_1,unavailable\\ncase_1,not_enrolled\\n")
+            parse_simulation_csv("test_id,scenario\ncase_1,unavailable\ncase_1,not_enrolled\n")
 
     def test_rejects_extra_csv_fields(self):
         with self.assertRaises(ValueError):
-            parse_simulation_csv("test_id,scenario,pan\\ncase_1,unavailable,4111111111111111\\n")
+            parse_simulation_csv("test_id,scenario,pan\ncase_1,unavailable,4111111111111111\n")
 
     def test_simulation_report_labels_all_results_as_mock(self):
         result = simulate_3ds("not_enrolled")
