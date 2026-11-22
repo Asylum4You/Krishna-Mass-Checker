@@ -149,3 +149,24 @@ The additional QA helpers are intentionally limited to ordinary application test
 - `sandbox/policy_guard.py`: rejects payment-card fields and PAN-like digit sequences, and supplies the mandatory simulation-only label. Synthetic record validation uses this guard.
 
 These helpers do not inspect real cards, payment pages, issuer responses, or authentication outcomes. The network helper validates configuration only; it does not perform a connectivity request. All results remain **SIMULATION ONLY**.
+
+
+## Explainable issuer-metadata classification
+
+The lookup interface and Telegram batch report classify public issuer metadata using independent fields:
+
+- **Network:** provider-reported card network, or unknown.
+- **Funding type:** provider-reported credit, debit, prepaid, or unknown.
+- **Product category:** provider-reported brand/product description, or unknown.
+- **Metadata confidence:** provider-reported rich, provider-reported partial, or insufficient metadata. This is a completeness label, not an independent verification.
+- **Security posture:** metadata consistent, incomplete, inconsistent, or no classifiable metadata.
+- **Quality flags:** explicit data-quality inconsistencies such as unsupported network/funding values, malformed country codes, or conflicting prepaid/funding fields.
+- **Provenance:** metadata source and retrieval timestamp.
+
+The classification never predicts whether a card is active, funded, enrolled in 3-D Secure, exempt from a challenge, or capable of completing a transaction. Real-card authentication remains **unknown / not tested**. The security posture describes metadata quality only.
+
+Run the classifier unit tests with:
+
+```bash
+python -m unittest tests.test_bin_classifier -v
+```
