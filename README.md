@@ -168,5 +168,5 @@ The classification never predicts whether a card is active, funded, enrolled in 
 Run the classifier unit tests with:
 
 ```bash
-python -m unittest tests.test_bin_classifier -v
+python -m unittest discover -s tests -p 'test_bin_classifier.py' -v
 ```
