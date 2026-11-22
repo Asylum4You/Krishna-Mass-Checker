@@ -1,16 +1,25 @@
-# Safe BIN Lookup Bot
+# BIN/IIN Metadata Lookup Bot
 
-A Telegram bot that retrieves **public issuer metadata** for a BIN/IIN prefix using the public [binlist.net](https://binlist.net/) lookup service.
+A Telegram bot for single and batch lookup of **public BIN/IIN issuer metadata** using the [binlist.net](https://binlist.net/) lookup service.
 
-## Safety scope
+## Supported features
 
-- Accepts only 6–8 digit BIN/IIN prefixes.
-- Displays public scheme, brand, card type, issuer country, and bank metadata.
-- Does **not** accept full payment-card numbers, CVVs, expiry dates, card lists, or uploaded files.
-- Does **not** determine card validity, 3-D Secure / VBV enrollment, authentication state, or transaction outcomes.
-- Applies a per-user lookup cooldown and an HTTP request timeout.
+- Single-prefix lookup and CSV/TXT batch uploads.
+- One 6–8 digit BIN/IIN prefix per row.
+- Up to 10 unique prefixes per uploaded file.
+- Duplicate detection and removal.
+- Public scheme, brand, card type, issuer country, and bank metadata.
+- Downloadable CSV batch report.
+- Per-user cooldowns, upload-size limits, and HTTP timeouts.
 
-BIN/IIN metadata can be incomplete or outdated and must not be treated as proof that a payment instrument is valid or usable.
+## Data and authentication boundaries
+
+- Do not upload or send full payment-card numbers, CVVs, expiry dates, magnetic-stripe data, or payment credentials.
+- Files containing full card-like values, multiple columns, or malformed entries are rejected.
+- The bot does **not** validate payment cards, test transactions, check 3-D Secure/VBV enrollment, perform authentication challenges, or classify cards by authentication passability.
+- The report explicitly marks 3-D Secure/VBV status as **Not tested**.
+
+BIN/IIN metadata can be incomplete or outdated and is not proof that a payment instrument is valid or usable. Uploaded file contents are processed in memory for the request and are not written to local storage by this application.
 
 ## Requirements
 
@@ -27,26 +36,35 @@ export TELEGRAM_BOT_TOKEN='your-token'
 python main.py
 ```
 
-On Windows PowerShell, set the token with:
+On Windows PowerShell:
 
 ```powershell
 $env:TELEGRAM_BOT_TOKEN = "your-token"
 python main.py
 ```
 
-Never commit a real bot token. `.env.example` documents the expected environment variable; the application reads the token from the process environment and exits if it is missing.
+Never commit a real bot token. The application reads it from the process environment and exits if it is missing.
 
 ## Use
 
 1. Open the bot in Telegram and send `/start`.
-2. Send a 6–8 digit BIN/IIN prefix, such as the synthetic test prefix `411111`.
-3. Review the public issuer metadata returned by the lookup service.
+2. For a single lookup, send a 6–8 digit prefix such as the synthetic example `411111`.
+3. For a batch, upload a `.csv` or `.txt` file with one prefix per row. An optional first-row header such as `BIN/IIN` is supported.
+4. Receive a CSV report containing issuer metadata, lookup results, and an explicit “Not tested” authentication status.
 
-Do not send payment-card data. The bot intentionally has no bulk-file mode.
+Example batch file:
+
+```text
+BIN/IIN
+411111
+555555
+```
+
+Maximum upload size is 32 KB and each file may contain at most 10 unique prefixes. Duplicate prefixes are looked up once.
 
 ## Tests
 
-The unit tests use synthetic strings and local formatting only; they do not contact Telegram, binlist.net, payment processors, or authentication systems.
+Tests use synthetic prefixes and local formatting/parsing only; they do not contact Telegram, binlist.net, payment processors, or authentication systems.
 
 ```bash
 python -m unittest discover -s tests -v
