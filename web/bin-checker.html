@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:.82rem;margin:22px 4px}
     </div>
     <p class="disclaimer">Important: BIN/IIN data cannot establish whether an individual card is active, funded, enrolled in 3-D Secure, exempt from a challenge, or capable of completing a transaction. No payment, authorization, or authentication request is made.</p>
   </section>
-  <footer>Privacy by design: input is limited in the browser to 6–8 digits and is not saved by this page. The lookup request is sent to the public metadata provider.</footer>
+  <footer>Privacy by design: input is limited in the browser to 6–8 digits and is not saved by this page. The 6–8 digit prefix is sent to the public metadata provider. When hosted with the included Python server, the server proxies and caches the metadata request.</footer>
 </main>
 <script>
 const form=document.getElementById('lookup-form');
@@ -71,10 +71,18 @@ form.addEventListener('submit',async event=>{
   if(!/^\d{6,8}$/.test(prefix)){statusEl.textContent='Enter exactly 6–8 digits.';results.hidden=true;return;}
   button.disabled=true;statusEl.textContent='Looking up public issuer metadata…';results.hidden=true;
   try{
-    const response=await fetch('https://lookup.binlist.net/'+encodeURIComponent(prefix),{headers:{Accept:'application/json'}});
-    if(response.status===404)throw new Error('No issuer-range record was found for that prefix.');
-    if(!response.ok)throw new Error('The metadata service returned HTTP '+response.status+'. Try again later.');
-    const data=await response.json();
+    let response=await fetch('/api/bin/'+encodeURIComponent(prefix),{headers:{Accept:'application/json'}});
+    let data;
+    if(response.headers.get('content-type')?.includes('application/json')){
+      data=await response.json();
+      if(response.status===404)throw new Error(data.error||'No issuer-range record was found for that prefix.');
+      if(!response.ok)throw new Error(data.error||'Metadata lookup failed. Try again later.');
+    }else{
+      response=await fetch('https://lookup.binlist.net/'+encodeURIComponent(prefix),{headers:{Accept:'application/json'}});
+      if(response.status===404)throw new Error('No issuer-range record was found for that prefix.');
+      if(!response.ok)throw new Error('The metadata service returned HTTP '+response.status+'. Try again later.');
+      data=await response.json();
+    }
     put('scheme',data.scheme?data.scheme.toUpperCase():null);
     put('type',data.type);
     put('brand',data.brand);
