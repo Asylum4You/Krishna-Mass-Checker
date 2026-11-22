@@ -102,6 +102,17 @@ def format_bin_info(prefix: str, data: dict[str, Any]) -> str:
         f"Issuer website: {bank.get('url') or 'Not available'}",
         "3-D Secure / VBV status: Not tested",
     ]
+    classification = classify_bin_metadata(data)
+    fields.extend([
+        f"Network classification: {classification['network']}",
+        f"Funding classification: {classification['funding_type']}",
+        f"Metadata confidence: {classification['metadata_confidence']}",
+        f"Security posture: {classification['security_posture']}",
+        f"Quality flags: {classification['quality_flags']}",
+        f"Metadata source: {classification['metadata_source']}",
+        f"Retrieved at: {classification['retrieved_at']}",
+        "Classification describes metadata quality only; it does not predict card or authentication outcomes.",
+    ])
     return "\n".join(fields)
 
 
@@ -212,6 +223,9 @@ def build_batch_report(results: list[dict[str, str]]) -> bytes:
     fields = [
         "BIN/IIN prefix", "Scheme", "Brand", "Card type", "Country",
         "Bank / issuer", "Lookup result", "3-D Secure / VBV status",
+        "Network classification", "Funding classification", "Product category",
+        "Metadata confidence", "Security posture", "Quality flags",
+        "Metadata source", "Retrieved at",
     ]
     writer = csv.DictWriter(output, fieldnames=fields)
     writer.writeheader()
@@ -286,13 +300,31 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             "Bank / issuer": "",
             "Lookup result": "",
             "3-D Secure / VBV status": "Not tested",
+            "Network classification": "",
+            "Funding classification": "",
+            "Product category": "",
+            "Metadata confidence": "",
+            "Security posture": "",
+            "Quality flags": "",
+            "Metadata source": "",
+            "Retrieved at": "",
         }
         try:
             data = await lookup_bin(prefix)
             if data is None:
                 row["Lookup result"] = "No public metadata found"
             else:
-                row.update(classify_bin_metadata(data))
+                classification = classify_bin_metadata(data)
+                row.update({
+                    "Network classification": classification["network"],
+                    "Funding classification": classification["funding_type"],
+                    "Product category": classification["product_category"],
+                    "Metadata confidence": classification["metadata_confidence"],
+                    "Security posture": classification["security_posture"],
+                    "Quality flags": classification["quality_flags"],
+                    "Metadata source": classification["metadata_source"],
+                    "Retrieved at": classification["retrieved_at"],
+                })
                 row["Lookup result"] = "Found"
         except httpx.HTTPStatusError as exc:
             row["Lookup result"] = f"HTTP {exc.response.status_code}"
