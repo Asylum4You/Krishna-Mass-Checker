@@ -16,7 +16,10 @@ from typing import Any
 
 import httpx
 from telegram import Update
-from sandbox.file_processor import parse_simulation_csv\nfrom sandbox.reporting_engine import build_simulation_report\nfrom sandbox.three_ds_simulator import simulate_3ds\nfrom telegram.ext import (
+from sandbox.file_processor import parse_simulation_csv
+from sandbox.reporting_engine import build_simulation_report
+from sandbox.three_ds_simulator import simulate_3ds
+from telegram.ext import (
     Application,
     CommandHandler,
     ContextTypes,
@@ -130,6 +133,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await start(update, context)
+
+
+async def simulate_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Run one predefined synthetic scenario; no card data or network calls."""
+    if not update.message:
+        return
+    scenario = context.args[0].lower() if context.args else ""
+    try:
+        result = simulate_3ds(scenario)
+    except ValueError:
+        await update.message.reply_text(
+            "Usage: /simulate <scenario>\nAllowed: frictionless_success, challenge_required, "
+            "challenge_failed, not_enrolled, unavailable\nSIMULATION ONLY."
+        )
+        return
+    await update.message.reply_text(
+        f"Scenario: {result['scenario']}\nResult: {result['result']}\n"
+        f"{result['detail']}\n{result['mode']}"
+    )
 
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -288,7 +310,8 @@ def main() -> None:
 
     application = Application.builder().token(token).build()
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))\n    application.add_handler(CommandHandler("simulate", simulate_command))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("simulate", simulate_command))
     application.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     logger.info("Starting BIN/IIN Metadata Lookup bot")
