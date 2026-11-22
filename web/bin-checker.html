@@ -73,6 +73,21 @@ const button=document.getElementById('submit');
 const statusEl=document.getElementById('status');
 const results=document.getElementById('results');
 const put=(id,value)=>document.getElementById(id).textContent=(value===undefined||value===null||value===''?'Not reported':String(value));
+function classifyMetadata(data){
+  const country=data.country||{},bank=data.bank||{};
+  const scheme=String(data.scheme||'').trim().toLowerCase();
+  const type=String(data.type||'').trim().toLowerCase();
+  const alpha2=String(country.alpha2||'').trim().toUpperCase();
+  const populated=[scheme,type,String(bank.name||'').trim(),String(country.name||'').trim(),alpha2].filter(Boolean).length;
+  const flags=[];
+  if(scheme&&!['visa','mastercard','amex','american express','discover','unionpay','jcb','diners'].includes(scheme))flags.push('unrecognized_network_value');
+  if(type&&!['credit','debit','prepaid'].includes(type))flags.push('unrecognized_funding_value');
+  if(alpha2&&(!/^[A-Z]{2}$/.test(alpha2)))flags.push('invalid_country_code');
+  if(data.prepaid===true&&type==='credit')flags.push('prepaid_credit_metadata_conflict');
+  const confidence=populated>=4?'provider_reported_rich':populated>=2?'provider_reported_partial':'insufficient_metadata';
+  const posture=(!scheme&&!type&&!bank.name&&!country.name)?'no_classifiable_metadata':flags.length?'metadata_inconsistent':confidence==='insufficient_metadata'?'metadata_incomplete':'metadata_consistent';
+  return {network:scheme||'unknown',funding_type:['credit','debit','prepaid'].includes(type)?type:'unknown',product_category:String(data.brand||'').trim()||'unknown',metadata_confidence:confidence,security_posture:posture,quality_flags:flags.join(',')||'none',metadata_source:'binlist.net (direct browser lookup)',retrieved_at:new Date().toISOString()};
+}
 form.addEventListener('submit',async event=>{
   event.preventDefault();
   const prefix=input.value.trim();
@@ -100,7 +115,7 @@ form.addEventListener('submit',async event=>{
     put('prepaid',typeof data.prepaid==='boolean'?(data.prepaid?'Yes':'No'):'Not reported');
     put('length',data.number?.length);
     put('luhn',typeof data.number?.luhn==='boolean'?(data.number.luhn?'Yes':'No'):'Not reported');
-    const c=data.classification||{};
+    const c=data.classification||classifyMetadata(data);
     put('class-network',c.network);
     put('class-funding',c.funding_type);
     put('class-product',c.product_category);
