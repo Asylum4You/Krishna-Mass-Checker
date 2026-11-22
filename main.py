@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
 # Add your Telegram bot token here
-TELEGRAM_BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
+TELEGRAM_BOT_TOKEN = '8560286612:AAFfp3ohYo6ikDCICVy8YkubmNNE3NHizgA'
 
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
