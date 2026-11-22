@@ -47,7 +47,23 @@ Never commit a real bot token. The application reads it from the process environ
 
 ## Web checker
 
-A static web interface is provided in `web/` and published to GitHub Pages by `.github/workflows/deploy-bin-checker.yml`. After Pages is enabled for the repository and the deployment workflow completes, open `https://asylum4you.github.io/Krishna-Mass-Checker/`. In Telegram, use `/web` or the button shown by `/start`. The page accepts only 6–8 digit prefixes and displays public issuer metadata; 3-D Secure status is always shown as not tested.
+The browser interface is in `web/bin-checker.html`. The deployment workflow publishes the static page to GitHub Pages at:
+
+`https://asylum4you.github.io/Krishna-Mass-Checker/`
+
+The page first uses the included same-origin `/api/bin/{prefix}` endpoint when served by `web_server.py`; on static GitHub Pages it falls back to the public Binlist metadata endpoint. The page accepts only 6–8 digit prefixes and always displays 3-D Secure status as **Not tested**.
+
+### Run the web checker with the included API proxy
+
+```bash
+python web_server.py
+```
+
+Open `http://127.0.0.1:8080`. The server binds to localhost by default. For remote access, put it behind a trusted HTTPS reverse proxy. Optional settings are `WEB_HOST` (default `127.0.0.1`) and `WEB_PORT` (default `8080`). The proxy endpoint exposes only reduced public issuer metadata, caches results in memory for six hours, and applies a basic per-IP limit of 30 requests per minute.
+
+### Telegram integration
+
+The bot's `/start` response includes a web-checker button, and `/web` sends the link directly. The current link is configured by `WEB_CHECKER_URL` in `main.py`. If you publish the page at another HTTPS URL, update that constant and commit the change.
 
 ## Use
 
