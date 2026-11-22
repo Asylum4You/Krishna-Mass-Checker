@@ -1,6 +1,8 @@
 """Strict validation for synthetic 3-D Secure simulation records."""
 import re
 
+from .policy_guard import assert_synthetic_payload
+
 TEST_ID = re.compile(r"^[A-Za-z0-9_-]{1,32}$")
 SCENARIOS = {
     "frictionless_success",
@@ -14,6 +16,7 @@ REQUIRED_COLUMNS = {"test_id", "scenario"}
 
 def validate_simulation_record(record: dict[str, str]) -> dict[str, str]:
     """Accept only an opaque synthetic test ID and a known mock scenario."""
+    assert_synthetic_payload(record)
     if set(record) != REQUIRED_COLUMNS:
         raise ValueError("Simulation rows must contain exactly test_id and scenario columns.")
     test_id = (record.get("test_id") or "").strip()
