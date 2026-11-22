@@ -15,7 +15,7 @@ import time
 from typing import Any
 
 import httpx
-from telegram import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from sandbox.bin_classifier import classify_bin_metadata
 from sandbox.file_processor import parse_simulation_csv
 from sandbox.reporting_engine import build_simulation_report
@@ -29,6 +29,7 @@ from telegram.ext import (
 )
 
 BINLIST_URL = "https://lookup.binlist.net/"
+WEB_CHECKER_URL = "https://asylum4you.github.io/Krishna-Mass-Checker/"
 REQUEST_TIMEOUT = 8.0
 LOOKUP_COOLDOWN_SECONDS = 3.0
 FILE_COOLDOWN_SECONDS = 15.0
@@ -122,15 +123,32 @@ async def lookup_bin(prefix: str) -> dict[str, Any] | None:
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message:
+        keyboard = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("Open BIN/IIN web checker", url=WEB_CHECKER_URL)]]
+        )
         await update.message.reply_text(
-            "Welcome to BIN/IIN Metadata Lookup.\n\n"
+            "Welcome to BIN/IIN Metadata Lookup.\\n\\n"
             "Send one 6–8 digit BIN/IIN prefix, or upload a CSV/TXT file with "
-            "one prefix per row (up to 10 unique prefixes).\n"
-            "Do not send full card numbers, CVVs, expiry dates, or payment data.\n\n"
+            "one prefix per row (up to 10 unique prefixes).\\n"
+            "You can also open the web checker using the button below.\\n"
+            "Do not send full card numbers, CVVs, expiry dates, or payment data.\\n\\n"
             "This bot reports public issuer metadata only. It does not check card "
-            "validity, 3-D Secure/VBV enrollment, authentication, or transaction status.\n\n"
+            "validity, 3-D Secure/VBV enrollment, authentication, or transaction status.\\n\\n"
             "For mock testing only, use /simulate <scenario> or upload simulation.csv "
-            "with test_id,scenario columns. Outcomes are synthetic and are not real card results."
+            "with test_id,scenario columns. Outcomes are synthetic and are not real card results.",
+            reply_markup=keyboard,
+        )
+
+
+async def web_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Share the public issuer-metadata web checker link."""
+    if update.message:
+        keyboard = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("Open BIN/IIN web checker", url=WEB_CHECKER_URL)]]
+        )
+        await update.message.reply_text(
+            "Open the public BIN/IIN issuer-metadata checker. It does not test cards or 3-D Secure.",
+            reply_markup=keyboard,
         )
 
 
@@ -306,6 +324,7 @@ def main() -> None:
     application = Application.builder().token(token).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("web", web_command))
     application.add_handler(CommandHandler("simulate", simulate_command))
     application.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
